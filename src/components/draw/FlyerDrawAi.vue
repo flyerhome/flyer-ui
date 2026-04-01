@@ -5,6 +5,7 @@ import {message} from "ant-design-vue";
 
 // 获取SVG元素引用
 const svgEl = ref();
+const svgRef = ref();
 const toolData = reactive({
   svgWidth:1000,
   svgHeight:700,
@@ -41,7 +42,7 @@ const aiDraw = async (e) => {
   const url = toolData.aiUrl;
   const data = {
     input: {
-      prompt: "我的svg画布的宽为" + toolData.svgWidth + "，高为"+toolData.svgHeight + "，" + toolData.aiContent
+      prompt: "我的svg画布的宽为" + svgRef.value.clientWidth + "，高为"+svgRef.value.clientHeight + "，" + toolData.aiContent
     },
     parameters: {},
     debug: {}
@@ -55,13 +56,7 @@ const aiDraw = async (e) => {
     });
 
     if (response.status === 200) {
-      console.log(`${response.data.output.text}`);
-      if (toolData.backgroundFlag) {
-        svgEl.value.innerHTML = '<rect x="0" y="0" width="' +toolData.svgWidth+ '" height="' + toolData.svgHeight + '" fill="' + toolData.background + '"></rect>'
-      } else {
-        svgEl.value.innerHTML = ''
-      }
-      svgEl.value.innerHTML += `${response.data.output.text}`
+      svgEl.value.innerHTML = `${response.data.output.text}`;
       message.success('已绘制完成')
       loading()
     } else {
@@ -84,7 +79,7 @@ const aiDraw = async (e) => {
 }
 
 const exportPng = (e) => {
-  const svgString = new XMLSerializer().serializeToString(svgEl.value);
+  const svgString = new XMLSerializer().serializeToString(svgRef.value);
   const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
   const svgUrl = URL.createObjectURL(svgBlob);
 
@@ -144,95 +139,67 @@ window.onresize = () => {
   height.value = document.body.clientHeight
   console.log("resize................", width.value, height.value)
 }
+const openConfig = () => {
+  visible.value = true
+}
+const visible = ref(false)
+const widthRate = ref(90)
 </script>
 
 <template>
-  <div style="width:100%;height: 100%;padding:0;background-color: #dddddd;">
-
-    <div  style="padding: 5px;border-bottom: 1px solid #bbbbbb">
-      <a-row>
-        <a-col :span="7">
-          <a-form-item
-              label="AI智能体地址"
-              name="url"
-          >
-            <a-input type="text" style="width: 450px" v-model:value="toolData.aiUrl"></a-input>
-          </a-form-item>
-        </a-col>
-        <a-col :span="4">
-          <a-form-item
-              label="ApiId"
-              name="apiId"
-          >
-            <a-input type="text" style="width: 250px" v-model:value="toolData.apiId"></a-input>
-          </a-form-item>
-        </a-col>
-        <a-col :span="4">
-          <a-form-item
-              label="ApiKey"
-              name="apiKey"
-          >
-            <a-input type="text" style="width: 250px" v-model:value="toolData.apiKey"></a-input>
-          </a-form-item>
-        </a-col>
-        <a-col :span="4">
-          <a-button @click="saveAiConfig">本地缓存</a-button>
-          <a-button @click="clearAiConfig(1)">清除本地缓存</a-button>
-          <a-button @click="clearAiConfig(0)">清空重录</a-button>
-        </a-col>
-      </a-row>
-      <a-row>
-        <a-col :span="4">
-          <a-form-item
-              label="画布大小"
-              name="svgWH"
-          >
-            <a-input type="number" v-model:value="toolData.svgWidth" style="width: 80px"></a-input>
-            <span> * </span>
-            <a-input type="number" v-model:value="toolData.svgHeight" style="width: 80px"></a-input>
-            <span> px</span>
-          </a-form-item>
-        </a-col>
-        <a-col>
-          <a-checkbox v-model:checked="toolData.backgroundFlag" style="padding: 5px"/>
-        </a-col>
-        <a-col :span="2">
-          <a-form-item
-              label="背景色"
-              name="background"
-          >
-
-            <a-input type="color" v-model:value="toolData.background" style="width: 80px"></a-input>
-          </a-form-item>
-        </a-col>
-
-        <a-col :span="16">
-          <a-form-item
-              label=""
-              name="aiContent"
-          >
-            <a-textarea v-model:value="toolData.aiContent" style="width: calc(100% - 500px);margin-right: 10px;" placeholder="请输入需要绘制图形的详细信息，如绘制一个迷宫，有一个小人在迷宫里从入口走到出口"></a-textarea>
-
-            <a-button @click="aiDraw">开始AI绘制</a-button>
-            <a-button @click="exportPng">导出PNG</a-button>
-          </a-form-item>
-        </a-col>
-      </a-row>
+  <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column;">
+    <a-textarea v-model:value="toolData.aiContent" :style="{width: widthRate + '%',height:'10%'}" placeholder="请输入需要绘制图形的详细信息，如绘制一个迷宫，有一个小人在迷宫里从入口走到出口"></a-textarea>
+    <div :style="{width: widthRate + '%', paddingTop:'10px', paddingBottom:'10px'}">
+      <a-button @click="aiDraw" type="primary" style="width: calc(60% - 10px);margin-right: 10px;" >开始AI绘制</a-button>
+      <a-button @click="exportPng" style="width: calc(20% - 10px);margin-right: 10px;" >导出PNG</a-button>
+      <a-button @click="openConfig" style="width: calc(20%);" >更多操作</a-button>
     </div>
+    <div style="position: relative;padding: 0;background: rgba(204,198,198,0.47);margin:0;" :style="{width: widthRate + '%', height:'calc(90% - 60px)'}">
+      <svg ref="svgRef" :style="{width:'100%', height:'100%'}">
+        <g>
+          <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :fill="toolData.background" style="width: 100%;height: 100%"></rect>
+        </g>
+        <g id="root" ref="svgEl">
 
-    <a-row :gutter="[10,10]" style="padding: 5px">
-      <a-col :span="24" style="padding: 10px">
-
-        <div ref="bodyRef" style="position: relative;padding: 0;z-index: 999;width:100%;height: 100%;display: flex;justify-content: center;align-items: center;flex-direction: column">
-          <div style="position: relative;padding: 0;background: rgba(204,198,198,0.47);" :style="{width:toolData.svgWidth + 'px', height:toolData.svgHeight + 'px'}">
-            <svg ref="svgEl" :style="{width:'100%', height:'100%'}">
-              <rect v-if="toolData.backgroundFlag" :x="0" :y="0" :width="toolData.svgWidth" :height="toolData.svgHeight" :fill="toolData.background"></rect>
-            </svg>
-          </div>
-        </div>
-      </a-col>
-    </a-row>
+        </g>
+      </svg>
+    </div>
   </div>
+
+  <a-drawer
+      v-model:open="visible"
+      class="custom-class"
+      title="更多操作"
+      placement="right"
+  >
+
+    <a-form-item
+        label="背景色"
+    >
+      <a-checkbox v-model:checked="toolData.backgroundFlag" style="padding: 5px"/>
+      <a-input type="color" v-model:value="toolData.background" style="width: calc(100% - 30px)"></a-input>
+    </a-form-item>
+
+    <a-form-item
+        label="阿里百炼智能体"
+    >
+      <a-input type="text" style="width: 100%;" v-model:value="toolData.aiUrl"></a-input>
+    </a-form-item>
+<!--    <a-form-item
+        label="ApiId"
+    >
+      <a-input type="text" style="width: 100%" v-model:value="toolData.apiId"></a-input>
+    </a-form-item>-->
+    <a-form-item
+        label="ApiKey"
+    >
+      <a-input type="text" style="width: 100%" v-model:value="toolData.apiKey"></a-input>
+    </a-form-item>
+    <a-button @click="saveAiConfig">本地缓存</a-button>
+    <a-button @click="clearAiConfig(1)" style="margin-left: 5px;">清除缓存</a-button>
+    <a-button @click="clearAiConfig(0)" style="margin-left: 5px;">清空重录</a-button>
+
+  </a-drawer>
 </template>
 
 

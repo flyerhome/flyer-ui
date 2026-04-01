@@ -197,17 +197,18 @@ const videoEdit = () => {
 
   })
 }
+const widthRate = ref(90)
 </script>
 
 <template>
 <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
-  <a-select v-model:value="movieItem" @change="(val) => loadVideo(val)" style="width: calc(65%);margin-bottom: 10px;" placeholder="选择聚集">
+  <a-select v-model:value="movieItem" @change="(val) => loadVideo(val)" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择聚集">
     <a-select-option v-for="item in dataList" :value="item.url">{{ item.name }}</a-select-option>
   </a-select>
-  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;width:65%;height:65%;" @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
+  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:65%;" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
   </video>
-  <a-textarea v-model:value="editContent" style="width: calc(65%);margin-bottom: 10px;margin-top: 10px;" placeholder="AI剪辑"></a-textarea>
-  <a-button type="primary" style="width: 65%;" @click="videoEdit">AI剪辑</a-button>
+  <a-textarea v-model:value="editContent" style="margin-bottom: 10px;margin-top: 10px;" :style="{width: widthRate + '%'}" placeholder="AI剪辑"></a-textarea>
+  <a-button type="primary" :style="{width: widthRate + '%'}" @click="videoEdit">AI剪辑</a-button>
 </div>
 </template>
 
