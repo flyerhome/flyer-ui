@@ -6,6 +6,7 @@ import FlyerDrawAi from "../components/draw/FlyerDrawAi.vue";
 import FlyerVolumeAi from "../components/volume/FlyerVolumeAi.vue";
 import FlyerPlayerEdit from "../components/player/FlyerPlayerEdit.vue";
 import FlyerPlayerTmp from "../components/player/FlyerPlayerTmp.vue";
+import FlyerVolumeCloneAi from "../components/volume/FlyerVolumeCloneAi.vue";
 
 
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
     { path: '/draw/ai', component:  FlyerDrawAi},
     { path: '/draw/cloud-ai', component:  FlyerDrawCloudAi},
     { path: '/volume/ai', component:  FlyerVolumeAi},
+    { path: '/volume/ai/clone', component:  FlyerVolumeCloneAi},
     { path: '/', component:  null, redirect:{path:'/player'}},
 ]
 

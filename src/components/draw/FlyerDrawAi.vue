@@ -36,10 +36,20 @@ const clearAiConfig = (flag) => {
 
 
 const aiDraw = async (e) => {
-  const loading = message.loading('正在绘制中请稍等...', 0);
   const apiKey = toolData.apiKey;
   const appId = toolData.apiId
   const url = toolData.aiUrl;
+  if (!url) {
+    message.warn("请填写阿里云百炼智能体的base_url")
+    visible.value = true;
+    return;
+  }
+  if (!apiKey) {
+    message.warn("请填写阿里云百炼智能体的ApiKey")
+    visible.value = true;
+    return;
+  }
+  const loading = message.loading('正在绘制中请稍等...', 0);
   const data = {
     input: {
       prompt: "我的svg画布的宽为" + svgRef.value.clientWidth + "，高为"+svgRef.value.clientHeight + "，" + toolData.aiContent
