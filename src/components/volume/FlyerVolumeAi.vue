@@ -46,6 +46,10 @@ onMounted(() => {
 })
 const apiPref = import.meta.env.VITE_APP_API_URL
 const widthRate = ref(90)
+const visible = ref(false)
+const historyNote = () => {
+  visible.value = true;
+}
 </script>
 
 <template>
@@ -55,15 +59,37 @@ const widthRate = ref(90)
     </a-select>
     <a-input v-model:value="output"  :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="命名"></a-input>
     <a-textarea v-model:value="content"  :style="{width: widthRate + '%',marginBottom: '10px',marginTop: '10px'}" placeholder="填写要生成语音的文本内容"></a-textarea>
-    <a-button type="primary" :style="{width: widthRate + '%'}" @click="submit">生成语音</a-button>
-    <div style="position: relative;padding: 10px;z-index: 999;height: auto;background: #bdedf6;
-    display: flex;flex-wrap: wrap;gap: 10px 10px;align-items: flex-start; /* 关键：让行高紧贴内容，不撑高 */" :style="{width: widthRate + '%'}">
-      <figure style="width: 10%" v-for="file in fileList">
-        <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
-        <audio style="width: 100%" controls :src="apiPref + file.url"></audio>
-      </figure>
+    <div :style="{width: widthRate + '%'}">
+    <a-button type="primary" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}" @click="submit">生成语音</a-button>
+    <a-button :style="{width: '20%'}" @click="historyNote">历史记录</a-button>
+
+    </div>
+    <div style="position: relative;padding: 10px;z-index: 999;background: #bdedf6;display: flex;flex-wrap: wrap;gap: 10px 10px;align-items: flex-start;" :style="{width: widthRate + '%'}">
+      <div v-for="(file,index) in fileList">
+        <figure v-if="index <= 11">
+          <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
+          <figcaption>{{file.time}}</figcaption>
+          <audio controls :src="apiPref + file.url"></audio>
+        </figure>
+      </div>
     </div>
   </div>
+
+
+  <a-drawer
+      v-model:open="visible"
+      class="custom-class"
+      title="历史记录"
+      placement="right"
+  >
+    <div v-for="file in fileList">
+      <figure>
+        <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
+        <figcaption>{{file.time}}</figcaption>
+        <audio style="width: 90%" controls :src="apiPref + file.url"></audio>
+      </figure>
+    </div>
+  </a-drawer>
 </template>
 
 <style scoped>

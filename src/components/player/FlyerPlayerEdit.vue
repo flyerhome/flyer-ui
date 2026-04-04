@@ -25,7 +25,10 @@ const queryList = (call) => {
 }
 
 const loadVideo = (url) => {
-  url = import.meta.env.VITE_APP_API_URL + url
+  url = url.trim()
+  if (!url.startsWith('https') && !url.startsWith('http')) {
+    url = import.meta.env.VITE_APP_API_URL + url
+  }
   const videoElement = videoRef.value
   if (hlsInstance) {
     hlsInstance.loadSource(url)
@@ -145,11 +148,6 @@ document.addEventListener('keyup', (e) => {
 
 // 组件挂载后初始化播放器
 onMounted(() => {
-  queryList(() => {
-    const item = dataList.value[0]
-    movieItem.value = item.url
-    loadVideo(item.url)
-  });
 })
 
 // 销毁实例：组件卸载时清理，防止内存泄漏
@@ -166,14 +164,14 @@ onBeforeUnmount(() => {
 })
 const speedVal = ref(1)
 const volumnVal = ref(10)
-const movieItem = ref()
+const movieUrl = ref()
 
 
 window.addEventListener('beforeunload', () => {
   console.log("检测到unload")
   const video = videoRef.value
   if (video) {
-    localStorage.setItem('video_last_time_' + movieItem.value, video.currentTime)
+    localStorage.setItem('video_last_time_' + movieUrl.value, video.currentTime)
   }
 })
 // 恢复播放进度
@@ -181,7 +179,7 @@ function resumePlayTime() {
   const video = videoRef.value
   if (!video) return
 
-  const lastTime = localStorage.getItem('video_last_time_' + movieItem.value)
+  const lastTime = localStorage.getItem('video_last_time_' + movieUrl.value)
   if (lastTime && !isNaN(lastTime)) {
     video.currentTime = Number(lastTime)
   }
@@ -189,7 +187,7 @@ function resumePlayTime() {
 const editContent = ref('')
 const videoEdit = () => {
   apost('/player/video-edit', {
-    item: movieItem.value,
+    item: movieUrl.value,
     content:editContent
   }, res => {
 
@@ -205,11 +203,17 @@ const widthRate = ref(90)
 
 <template>
 <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
-  <a-select v-model:value="movieItem" @change="(val) => loadVideo(val)" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择聚集">
-    <a-select-option v-for="item in dataList" :value="item.url">{{ item.name }}</a-select-option>
-  </a-select>
-  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:calc(99% - 60px);" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
+  <div :style="{width: widthRate + '%', paddingBottom:'10px'}">
+    <a-input v-model:value="movieUrl" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}"/>
+    <a-button type="primary" :style="{width: 'calc(20%)'}" @click="()=> loadVideo(movieUrl)">播放</a-button>
+  </div>
+  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:calc(85% - 120px);" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
   </video>
+  <a-textarea v-model:value="editContent" style="margin-bottom: 10px;margin-top: 10px;" :style="{width: widthRate + '%', height: '15%',}" placeholder="AI剪辑"></a-textarea>
+  <div :style="{width: widthRate + '%'}">
+    <a-button type="primary" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}" @click="videoEdit">AI剪辑</a-button>
+    <a-button type="primary" :style="{width: '20%'}" @click="viewVideo">查看剪辑</a-button>
+  </div>
 
 </div>
 </template>
