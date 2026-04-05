@@ -57,7 +57,8 @@ const aiDraw = async (e) => {
     style: { 'marginTop': '200px' }
   });
   const modelName = toolData.modelName;
-
+  toolData.svgWidth = svgRef.value.clientWidth
+  toolData.svgHeight = svgRef.value.clientHeight
   const content = "我的svg画布的宽为" + svgRef.value.clientWidth + "，高为" + svgRef.value.clientHeight + "，" + toolData.aiContent;
   await apost('/draw/cloud-ai', {
     content: content,

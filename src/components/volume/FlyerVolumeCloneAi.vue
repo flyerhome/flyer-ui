@@ -9,7 +9,7 @@ const content = ref('')
 const dataList = ref([])
 const fileList = ref([])
 const queryToneList = () => {
-  aget('/volume/tone/list', res => {
+  aget('/volume/qwen/tone/list', res => {
     if (!!!res) {
       return;
     }
@@ -19,7 +19,7 @@ const queryToneList = () => {
   })
 }
 const queryFileList = () => {
-  aget('/volume/list', res => {
+  aget('/volume/qwen/list', res => {
     if (!!!res) {
       return;
     }
@@ -29,10 +29,10 @@ const queryFileList = () => {
   })
 }
 const submit = () => {
-    apost('/volume/submit', {
-      content:content.value,
-      tone: volumeItem.value,
-      output: output.value
+    apost('/volume/qwen/submit', {
+      text:content.value,
+      clone_source: volumeItem.value,
+      save_name: output.value
     }, res => {
       message.success('已生成语音：' + res.output + '.wav')
       queryFileList()
@@ -55,7 +55,7 @@ const historyNote = () => {
 <template>
   <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
     <a-select v-model:value="volumeItem" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择音色">
-      <a-select-option v-for="item in dataList" :value="item.name">{{ item.name + '-' + item.gender + '-' + item.contentCategories }}</a-select-option>
+      <a-select-option v-for="item in dataList" :value="item.en_name">{{ item.name }}</a-select-option>
     </a-select>
     <a-input v-model:value="output"  :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="命名"></a-input>
     <a-textarea v-model:value="content"  :style="{width: widthRate + '%',marginBottom: '10px',marginTop: '10px'}" placeholder="填写要生成语音的文本内容"></a-textarea>

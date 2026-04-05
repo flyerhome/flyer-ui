@@ -187,7 +187,7 @@ function resumePlayTime() {
 const editContent = ref('')
 const videoEdit = () => {
   apost('/player/video-edit', {
-    item: movieUrl.value,
+    video_path: movieUrl.value,
     content:editContent
   }, res => {
 
@@ -211,7 +211,7 @@ const widthRate = ref(90)
   </video>
   <a-textarea v-model:value="editContent" style="margin-bottom: 10px;margin-top: 10px;" :style="{width: widthRate + '%', height: '15%',}" placeholder="AI剪辑"></a-textarea>
   <div :style="{width: widthRate + '%'}">
-    <a-button type="primary" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}" @click="videoEdit">AI剪辑</a-button>
+    <a-button type="primary" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}" @click="videoEdit">开始剪辑</a-button>
     <a-button type="primary" :style="{width: '20%'}" @click="viewVideo">查看剪辑</a-button>
   </div>
 
