@@ -7,11 +7,13 @@ import FlyerVolumeAi from "../components/volume/FlyerVolumeAi.vue";
 import FlyerPlayerEdit from "../components/player/FlyerPlayerEdit.vue";
 import FlyerPlayerTmp from "../components/player/FlyerPlayerTmp.vue";
 import FlyerVolumeCloneAi from "../components/volume/FlyerVolumeCloneAi.vue";
+import FlyerPlayer2 from "../components/player/FlyerPlayer2.vue";
 
 
 const routes = [
     { path: '/hello-world', component:  HelloWorld},
     { path: '/player', component:  FlyerPlayer},
+    { path: '/player2', component:  FlyerPlayer2},
     { path: '/player-tmp', component:  FlyerPlayerTmp},
     { path: '/player-edit', component:  FlyerPlayerEdit},
     { path: '/draw/ai', component:  FlyerDrawAi},

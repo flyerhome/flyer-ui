@@ -191,22 +191,51 @@ function resumePlayTime() {
     video.currentTime = Number(lastTime)
   }
 }
-const videoEdit = () => {
+const cutVideo = () => {
   const data = dataList.value.find(item => item.vid === movieItem.value)
   if (!!!data) {
     return
   }
+  const hide = message.loading('请耐心等候...', 0);
   apost('/player/video-edit', {
     video_path: data.url,
     start_time: startValue.value,
     end_time: endValue.value,
+    save_name:editName.value
   }, res => {
-    message.success("剪辑成功")
+    editVideoList.value = []
+    hide()
+    message.success("已截取成功")
+    viewNote()
   }, err => {
-
+    hide()
+    message.error("截取失败" + err)
   })
 }
-const viewVideo = () => {
+const cutAudio = () => {
+  const data = dataList.value.find(item => item.vid === movieItem.value)
+  if (!!!data) {
+    return
+  }
+  const hide = message.loading('请耐心等候...', 0);
+  apost('/player/video-edit', {
+    video_path: data.url,
+    start_time: startValue.value,
+    end_time: endValue.value,
+    save_name:editName.value,
+    cut_audio:1
+  }, res => {
+    editVideoList.value = []
+    hide()
+    message.success("已截取成功")
+    viewNote()
+  }, err => {
+    hide()
+    message.error("截取失败：" + err)
+  })
+}
+const viewNote = () => {
+  stop()
   queryEditVideoList(movieItem.value)
   visible.value = true
 
@@ -238,7 +267,6 @@ const markEnd = () => {
 const editVideoList = ref([])
 
 const queryEditVideoList = (vid) => {
-  editVideoList.value = []
   aget('/player/edit/list?vid='+vid, (res) => {
     editVideoList.value = res.data
   }, err => {
@@ -247,6 +275,7 @@ const queryEditVideoList = (vid) => {
 }
 const visible = ref(false)
 const apiPref = import.meta.env.VITE_APP_API_URL
+const editName = ref('')
 </script>
 
 <template>
@@ -261,8 +290,10 @@ const apiPref = import.meta.env.VITE_APP_API_URL
     <a-input v-model:value="startValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markEnd">标记终点</a-button>
     <a-input v-model:value="endValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
-    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="videoEdit">开始剪辑</a-button>
-    <a-button type="primary" :style="{width: '10%'}" @click="viewVideo">查看剪辑</a-button>
+    <a-input v-if="false" v-model:value="editName" style="width: calc(15% - 10px);margin-right:10px;" placeholder="文件命名"></a-input>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutVideo">开始截取视频</a-button>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutAudio">开始截取音频</a-button>
+    <a-button type="primary" :style="{width: '10%'}" @click="viewNote">查看记录</a-button>
   </div>
 </div>
 
@@ -276,10 +307,15 @@ const apiPref = import.meta.env.VITE_APP_API_URL
       <figure>
         <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
         <figcaption>{{file.time}}</figcaption>
-        <video style="width: 90%" controls :src="apiPref + file.url"></video>
+        <video v-if="file.url.endsWith('.mp4')" style="width: 90%" controls :src="apiPref + file.url"></video>
+        <audio v-if="file.url.endsWith('.mp3')" style="width: 90%" controls :src="apiPref + file.url"></audio>
+        <audio v-if="file.url.endsWith('.m4a')" style="width: 90%" controls :src="apiPref + file.url"></audio>
+        <audio v-if="file.url.endsWith('.wav')" style="width: 90%" controls :src="apiPref + file.url"></audio>
       </figure>
     </div>
   </a-drawer>
+
+
 </template>
 
 <style scoped>

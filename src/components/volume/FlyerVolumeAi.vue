@@ -29,15 +29,20 @@ const queryFileList = () => {
   })
 }
 const submit = () => {
+
+  const hide = message.loading('请耐心等候...', 0)
     apost('/volume/submit', {
       content:content.value,
       tone: volumeItem.value,
-      output: output.value
+      output: output.value,
+      rate:rate.value,pitch:pitch.value,volume:volume.value
     }, res => {
-      message.success('已生成语音：' + res.output + '.wav')
+      message.success('已生成语音：' + res.save_name + '.wav')
       queryFileList()
+      hide()
     }, err => {
-
+      message.error('异常：' + err)
+      hide()
     })
 }
 onMounted(() => {
@@ -50,15 +55,37 @@ const visible = ref(false)
 const historyNote = () => {
   visible.value = true;
 }
+const rate = ref(0)
+const pitch = ref(0)
+const volume = ref(0)
 </script>
 
 <template>
   <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
-    <a-select v-model:value="volumeItem" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择音色">
+    <a-select v-model:value="volumeItem" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择音色" show-search>
       <a-select-option v-for="item in dataList" :value="item.name">{{ item.name + '-' + item.gender + '-' + item.contentCategories }}</a-select-option>
     </a-select>
+    <div :style="{width: 'calc(' + widthRate + '%)',marginBottom: '10px'}">
+      <a-row>
+        <a-col :span="8">
+          <a-form-item label="语速">
+            <a-input-number  style="width: 100%"  v-model:value="rate"   placeholder="语速（单位%）"></a-input-number>
+          </a-form-item>
+        </a-col>
+        <a-col :span="7" :offset="1">
+          <a-form-item label="音调">
+            <a-input-number style="width: 100%" v-model:value="pitch"   placeholder="音调（单位赫兹）"></a-input-number>
+          </a-form-item>
+        </a-col>
+        <a-col :span="7" :offset="1">
+          <a-form-item label="音量">
+            <a-input-number style="width: 100%" v-model:value="volume"   placeholder="音量（单位%）"></a-input-number>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </div>
     <a-input v-model:value="output"  :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="命名"></a-input>
-    <a-textarea v-model:value="content"  :style="{width: widthRate + '%',marginBottom: '10px',marginTop: '10px'}" placeholder="填写要生成语音的文本内容"></a-textarea>
+    <a-textarea v-model:value="content" :auto-size="{ minRows: 3, maxRows: 5 }"  :style="{width: widthRate + '%',marginBottom: '10px',marginTop: '10px', height:'60px'}" placeholder="填写要生成语音的文本内容"></a-textarea>
     <div :style="{width: widthRate + '%'}">
     <a-button type="primary" :style="{width: 'calc(80% - 10px)',marginRight: '10px'}" @click="submit">生成语音</a-button>
     <a-button :style="{width: '20%'}" @click="historyNote">历史记录</a-button>
