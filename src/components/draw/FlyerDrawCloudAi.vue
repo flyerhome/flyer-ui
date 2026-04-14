@@ -19,7 +19,10 @@ const toolData = reactive({
   options:[],
   selection: {
     drawing:false
-  }
+  },
+  textContent:[],
+  globalFontSize:32,
+  globalFontColor:'#f0c',
 });
 const width = ref(2000);
 const height = ref(1000);
@@ -316,18 +319,30 @@ const widthRate = ref(90)
           <rect v-if="!!toolData.selection" :x="toolData.selection?.x" :y="toolData.selection?.y" :width="toolData.selection?.width" :height="toolData.selection?.height" fill="lightblue" opacity="0.5" stroke-width="2" stroke="lightblue"></rect>
         </g>
         <g id="root" ref="svgEl">
-
+        </g>
+        <g text-anchor="middle" font-family="Arial, Microsoft YaHei, sans-serif">
+          <text font-weight="bold" x="50%" y="30%" :font-size="toolData.globalFontSize" :fill="toolData.globalFontColor">
+            <tspan v-for="content in toolData.textContent" :x="content.x + '%'" :y="content.y + '%'" :dy="content.dy" :fill="content.fontColor">
+              {{content.value}}
+            </tspan>
+          </text>
         </g>
       </svg>
     </div>
   </div>
 
-  <a-drawer
+  <a-drawer :width="720"
       v-model:open="visible"
       class="custom-class"
       title="更多操作"
       placement="right"
   >
+    <a-form-item label="当前画布大小">
+      <span>{{svgRef.clientWidth}}</span>
+      <span>×</span>
+      <span>{{svgRef.clientHeight}}</span>
+      <span>px</span>
+    </a-form-item>
     <a-form-item
         label="背景色"
     >
@@ -339,6 +354,27 @@ const widthRate = ref(90)
         <a-select-option v-for="opt in aiOptions" :value="opt.value">{{opt.label}}</a-select-option>
       </a-select>
     </a-form-item>
+
+    <div>
+      <a-form-item label="全局字体大小">
+        <a-input-number style="width: calc(100%);"  v-model:value="toolData.globalFontSize"></a-input-number>
+      </a-form-item>
+      <a-form-item label="全局字体颜色">
+        <a-input style="width: calc(100%);" type="color" v-model:value="toolData.globalFontColor"></a-input>
+      </a-form-item>
+    </div>
+      <div v-for="content in toolData.textContent" style="display: flex;width:calc(100% - 8px);height: auto;padding:3px;flex-wrap: wrap;flex-direction: column;border:1px solid #3f7a38;">
+        <a-textarea v-model:value="content.value" style="width: calc(100%);margin-bottom: 5px;height:100px;"></a-textarea>
+        <div style="display: flex;width:100%;height: auto;flex-wrap: wrap;flex-direction: row;margin-bottom: 5px">
+          <span>x: </span><a-input-number style="width:80px;margin-right:5px;" v-model:value="content.x"></a-input-number>
+          <span>y: </span><a-input-number style="width:80px;margin-right:5px;" v-model:value="content.y"></a-input-number>
+          <span>dy: </span><a-input-number style="width:80px;margin-right:5px;" v-model:value="content.dy"></a-input-number>
+          <span>size: </span><a-input-number style="width:80px;margin-right:5px;" v-model:value="content.fontSize"></a-input-number>
+          <span>color: </span><a-input style="width: 80px" type="color" v-model:value="content.fontColor"></a-input>
+        </div>
+
+      </div>
+      <a-button style="width:100%;top:5px;" type="primary" @click="()=>{toolData.textContent.push({value:'',x:50, y:30, dy:40,fontSize:30, fontColor:'#f0c'})}">添加文本</a-button>
   </a-drawer>
 </template>
 

@@ -3,7 +3,7 @@ import Hls from 'hls.js'
 import {onBeforeUnmount, onMounted, ref} from "vue";
 import {aget, apost} from "../../utils/Http.js";
 import {message} from "ant-design-vue";
-import FlyerMakeRecord from "./FlyerMakeRecord.vue";
+import FlyerMakeRecord from "../common/FlyerMakeRecord.vue";
 const volumeItem = ref()
 const output = ref()
 const content = ref('')

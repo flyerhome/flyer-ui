@@ -8,6 +8,7 @@ import FlyerPlayerEdit from "../components/player/FlyerPlayerEdit.vue";
 import FlyerPlayerTmp from "../components/player/FlyerPlayerTmp.vue";
 import FlyerVolumeCloneAi from "../components/volume/FlyerVolumeCloneAi.vue";
 import FlyerPlayer2 from "../components/player/FlyerPlayer2.vue";
+import FlyerMakeRecord from "../components/common/FlyerMakeRecord.vue";
 
 
 const routes = [
@@ -20,7 +21,11 @@ const routes = [
     { path: '/draw/cloud-ai', component:  FlyerDrawCloudAi},
     { path: '/volume/ai', component:  FlyerVolumeAi},
     { path: '/volume/ai/clone', component:  FlyerVolumeCloneAi},
-    { path: '/', component:  null, redirect:{path:'/player'}},
+    { path: '/volume/record', component:  FlyerMakeRecord},
+    { path: '/common/make-record', component:  ()=> import('../components/common/FlyerMakeRecord.vue')},
+    { path: '/common/player', component:  ()=> import('../components/common/FlyerPlayer.vue')},
+    { path: '/common/test/player', component:  ()=> import('../components/common/FlyerTestPlayer.vue')},
+    { path: '/', component:  null, redirect:{path:'/volume/record'}},
 ]
 
 const router = createRouter({
