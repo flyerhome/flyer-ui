@@ -5,9 +5,28 @@ import {message} from "ant-design-vue";
 import FlyerPlayer from "../common/FlyerPlayer.vue";
 const dataList = ref([])
 
+const queryList = (call) => {
+  dataList.value = []
+  aget('/player/list', (res)=> {
+    console.log('查询结果', res)
+    if (res.success) {
+      dataList.value = res.data
+      if (!!call) {
+        call()
+      }
+    }
+  }, (e) => {
+
+  })
+}
 
 // 组件挂载后初始化播放器
 onMounted(() => {
+  queryList(() => {
+    const item = dataList.value[0]
+    movieItem.value = item.vid
+    selectToPlay(item.vid)
+  });
 })
 
 const movieItem = ref()
@@ -15,9 +34,13 @@ const movieItem = ref()
 
 
 const cutVideo = () => {
+  const data = dataList.value.find(item => item.vid === movieItem.value)
+  if (!!!data) {
+    return
+  }
   const hide = message.loading('请耐心等候...', 0);
-  apost('/player2/video-edit', {
-    video_path: url.value,
+  apost('/player/video-edit', {
+    video_path: data.url,
     start_time: startValue.value,
     end_time: endValue.value,
     save_name:editName.value
@@ -32,9 +55,13 @@ const cutVideo = () => {
   })
 }
 const cutAudio = () => {
+  const data = dataList.value.find(item => item.vid === movieItem.value)
+  if (!!!data) {
+    return
+  }
   const hide = message.loading('请耐心等候...', 0);
-  apost('/player2/video-edit', {
-    video_path: url.value,
+  apost('/player/video-edit', {
+    video_path: data.url,
     start_time: startValue.value,
     end_time: endValue.value,
     save_name:editName.value,
@@ -80,7 +107,7 @@ const markEnd = () => {
 const editVideoList = ref([])
 
 const queryEditVideoList = (vid) => {
-  aget('/player2/edit/list?vid='+vid, (res) => {
+  aget('/player/edit/list?vid='+vid, (res) => {
     editVideoList.value = res.data
   }, err => {
 
@@ -91,38 +118,37 @@ const apiPref = import.meta.env.VITE_APP_API_URL
 const editName = ref('')
 
 const flyerPlayerRef = ref()
-const selectToPlay = (value) => {
-  const base64 = btoa(value);
-  flyerPlayerRef.value.play(base64,value)
-}
-const url = ref('/video/Charlie1002/20260406A0002.mp4')
-const playNow = () => {
-  selectToPlay(apiPref + url.value)
+const selectToPlay = (vid) => {
+  const data = dataList.value.find(item => item.vid === vid)
+  if (!!!data) {
+    return
+  }
+  const url = import.meta.env.VITE_APP_API_URL + data.url
+  flyerPlayerRef.value.play(vid,url)
 }
 </script>
 
 <template>
-  <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
-    <div :style="{width: widthRate + '%'}" style="margin-bottom: 5px">
-      <a-input v-model:value="url" style="width: calc(80% - 10px); margin-right: 10px;"></a-input>
-      <a-button style="width: 20%" type="primary" @click="playNow()">播放</a-button>
-    </div>
-    <div style="background: black;height:calc(69% - 60px);" :style="{width: widthRate + '%'}" >
-      <FlyerPlayer ref="flyerPlayerRef"></FlyerPlayer>
-    </div>
-    <!--  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:calc(69% - 60px);" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">-->
-    <!--  </video>-->
-    <div :style="{width: widthRate + '%',marginTop: '10px'}">
-      <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markStart">标记起点</a-button>
-      <a-input v-model:value="startValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
-      <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markEnd">标记终点</a-button>
-      <a-input v-model:value="endValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
-      <a-input v-if="false" v-model:value="editName" style="width: calc(15% - 10px);margin-right:10px;" placeholder="文件命名"></a-input>
-      <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutVideo">开始截取视频</a-button>
-      <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutAudio">开始截取音频</a-button>
-      <a-button type="primary" :style="{width: '10%'}" @click="viewNote">查看记录</a-button>
-    </div>
+<div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
+  <a-select v-model:value="movieItem" @change="(vid) => {selectToPlay(vid);}" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择聚集">
+    <a-select-option v-for="item in dataList" :value="item.vid">{{ item.name }}</a-select-option>
+  </a-select>
+  <div style="background: black;height:calc(69% - 60px);" :style="{width: widthRate + '%'}" >
+    <FlyerPlayer ref="flyerPlayerRef"></FlyerPlayer>
   </div>
+<!--  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:calc(69% - 60px);" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">-->
+<!--  </video>-->
+  <div :style="{width: widthRate + '%',marginTop: '10px'}">
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markStart">标记起点</a-button>
+    <a-input v-model:value="startValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markEnd">标记终点</a-button>
+    <a-input v-model:value="endValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
+    <a-input v-if="false" v-model:value="editName" style="width: calc(15% - 10px);margin-right:10px;" placeholder="文件命名"></a-input>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutVideo">开始截取视频</a-button>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutAudio">开始截取音频</a-button>
+    <a-button type="primary" :style="{width: '10%'}" @click="viewNote">查看记录</a-button>
+  </div>
+</div>
 
   <a-drawer
       v-model:open="visible"
