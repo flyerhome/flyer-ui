@@ -44,7 +44,7 @@ const maxTime = ref(20)
 
 // 录音列表
 const recordings = ref([])
-const emits = defineEmits(["upload"])
+const emits = defineEmits(["upload","loaded", "resetVideo"])
 // 格式化时间
 const formattedTime = computed(() => {
   const minutes = Math.floor(currentTime.value / 60)
@@ -100,6 +100,7 @@ const startRecording = async () => {
     mediaRecorder.value.start()
     startTime.value = Date.now()
     currentTime.value = 0
+    emits("resetVideo")
     timerInterval = setInterval(updateTimer, 1000)
     isRecording.value = true
 

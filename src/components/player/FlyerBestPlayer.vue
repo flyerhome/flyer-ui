@@ -1,5 +1,5 @@
 <script setup>
-import {onMounted, reactive, ref} from "vue";
+import {computed, onMounted, reactive, ref} from "vue";
 import {aget, apost} from "../../utils/Http.js";
 import {message} from "ant-design-vue";
 import FlyerPlayer from "../common/FlyerPlayer.vue";
@@ -97,13 +97,13 @@ function formatTime(seconds) {
   return `${hh}:${mm}:${ss}`;
 }
 const widthRate = ref(90)
-const startValue = ref('00:00:00')
-const endValue = ref('00:00:00')
+const startValue = ref(0.0)
+const endValue = ref(0.0)
 const markStart = () => {
-  startValue.value = formatTime(flyerPlayerRef.value.currentTime())
+  startValue.value = flyerPlayerRef.value.currentTime()
 }
 const markEnd = () => {
-  endValue.value = formatTime(flyerPlayerRef.value.currentTime())
+  endValue.value = flyerPlayerRef.value.currentTime()
 }
 const editVideoList = ref([])
 const recordVideoList = ref([])
@@ -111,6 +111,13 @@ const recordVideoList = ref([])
 const queryEditVideoList = (vid) => {
   aget('/player/edit/list?vid='+vid, (res) => {
     editVideoList.value = res.data
+  }, err => {
+
+  })
+}
+const queryRecordVideoList = () => {
+  aget('/player/record/list', (res) => {
+    recordVideoList.value = res.data
   }, err => {
 
   })
@@ -130,6 +137,7 @@ const selectToPlay = (vid) => {
   }
   const url = apiPref + data.url
   flyerPlayerRef.value.play(vid,url)
+  loadSubtitle(url)
 }
 const recordMeta = reactive({
   url:'',
@@ -137,9 +145,6 @@ const recordMeta = reactive({
   end:'',
 })
 const startRecord = () => {
-  const data = dataList.value.find(item => item.vid === movieItem.value)
-  recordMeta.url = data.url
-  recordMeta.start = formatTime(flyerPlayerRef.value.currentTime())
   flyerMakeRecordRef.value.updateMaxTime(60 * 60)
   flyerMakeRecordRef.value.startRecording()
   startRecordFlag.value = true;
@@ -148,24 +153,28 @@ const uploadRecord = () => {
 
 }
 const stopRecord = () => {
-  recordMeta.end = formatTime(flyerPlayerRef.value.currentTime())
+
   flyerMakeRecordRef.value.setRecordMeta(recordMeta)
+  recordMeta.end = formatTime(flyerPlayerRef.value.currentTime())
   flyerMakeRecordRef.value.stopRecording(true)
   flyerPlayerRef.value.stop();
   startRecordFlag.value = false;
 }
 const showRecord = () => {
   recordVisible.value = true
+  queryRecordVideoList()
 }
 const mergeRecord = () => {
 
 }
 const recordUpload = async (r) => {
+  const data = dataList.value.find(item => item.vid === movieItem.value)
   const formData = new FormData();
   formData.append('record', r.blob, r.name); // 第三个参数是文件名
-  formData.append('video_path', r.meta.url)
-  formData.append('video_start', r.meta.start)
-  formData.append('video_end', r.meta.end)
+  formData.append('video_path', data.url)
+  formData.append('video_start', recordStartValue.value)
+  formData.append('video_end', recordEndValue.value)
+  formData.append('video_speed', flyerPlayerRef.value.currentSpeed())
   try {
     const response = await fetch( apiPref + '/player/record/merge', {
       method: 'POST',
@@ -173,24 +182,95 @@ const recordUpload = async (r) => {
     });
 
     const result = await response.json();
+    flyerPlayerRef.value.stop()
+    showRecord()
     console.log('上传成功', result);
   } catch (error) {
     console.error('上传失败', error);
+  }
+}
+
+const recordStartValue = ref(0.0)
+const recordEndValue = ref(0.0)
+const markRecordStart = () => {
+  recordStartValue.value = flyerPlayerRef.value.currentTime()
+}
+const markRecordEnd = () => {
+  recordEndValue.value = flyerPlayerRef.value.currentTime()
+}
+
+const recordLoaded = () => {
+}
+const resetVideo = () => {
+  flyerPlayerRef.value.restart(recordStartValue.value)
+  setTimeout(()=> {
+    stopRecord()
+  }, (parseInt(recordEndValue.value - recordStartValue.value) + 1) * 1000)
+}
+const subtitle = []
+const loadSubtitle = async (url) => {
+  try {
+    const response = await fetch( url.substring(0, url.lastIndexOf('/')) + '/en.vtt', {
+      method: 'GET'
+    });
+
+    const result = await response.text();
+    let subtitleStrs = result.split("\n");
+    const regex = /(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/;
+    for (let i = 0, len = subtitleStrs.length; i < len; i++) {
+      const match = subtitleStrs[i].match(regex);
+      if (match && match.length > 0) {
+        // console.log("开始时间", match[0], "结束时间", match[1])
+        subtitle.push({
+          start:match[1],
+          end:match[2],
+        })
+        continue;
+      }
+      if (subtitle.length > 0) {
+        if (!subtitle[subtitle.length - 1].content) {
+          subtitle[subtitle.length - 1].content = []
+        }
+        if (!subtitleStrs[i]) {
+          continue;
+        }
+        subtitle[subtitle.length - 1].content.push(subtitleStrs[i])
+      }
+    }
+  } catch (error) {
+    console.error('loadSubtitle失败', error);
+  }
+}
+const showSubtitle = ref([])
+const timeUpdate = (currentTime) => {
+  const f = formatTime(currentTime)
+  console.log("timeUpdate", currentTime, f)
+  for (let i = 0, len = subtitle.length; i < len; i++) {
+    if (f >= subtitle[i].start && f < subtitle[i].end) {
+      showSubtitle.value = subtitle[i].content
+      console.log("匹配上了吗", showSubtitle.value)
+    }
   }
 }
 </script>
 
 <template>
 <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
+
   <a-select v-model:value="movieItem" @change="(vid) => {selectToPlay(vid);}" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择聚集">
     <a-select-option v-for="item in dataList" :value="item.vid">{{ item.name }}</a-select-option>
   </a-select>
-  <div style="display: flex; flex-direction: row;flex-wrap: wrap;align-items: center;">
-    <div style="background: black;width:800px;height:600px;" >
-      <FlyerPlayer ref="flyerPlayerRef"></FlyerPlayer>
+  <div style="display: flex; flex-direction: column;flex-wrap: wrap;align-items: center;">
+    <div style="background: black;width:400px;height:300px;" >
+      <FlyerPlayer ref="flyerPlayerRef" @timeUpdate="timeUpdate"></FlyerPlayer>
+      <div style="position: relative;z-index: 99999999;color: #0cdf57;pointer-events: none;left:0;right:0;font-size:18px;" :style="{bottom:30 * showSubtitle.length + 'px'}">
+        <div v-for="st in showSubtitle">
+          {{st}}
+        </div>
+      </div>
     </div>
-    <div v-show="startRecordFlag" style="background: black;width:800px;height:600px;" >
-      <FlyerMakeRecord ref="flyerMakeRecordRef" @upload="recordUpload"></FlyerMakeRecord>
+    <div v-show="startRecordFlag" style="background: black;width:400px;height:300px;" >
+      <FlyerMakeRecord ref="flyerMakeRecordRef" @upload="recordUpload" @loaded="recordLoaded" @resetVideo="resetVideo"></FlyerMakeRecord>
     </div>
   </div>
 
@@ -206,10 +286,13 @@ const recordUpload = async (r) => {
     <a-button type="primary" :style="{width: '10%'}" @click="viewNote">查看记录</a-button>
   </div>
   <div :style="{width: widthRate + '%',marginTop: '10px'}">
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markRecordStart">录制起点</a-button>
+    <a-input v-model:value="recordStartValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markRecordEnd">录制终点</a-button>
+    <a-input v-model:value="recordEndValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="startRecord">开启录频</a-button>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="stopRecord">关闭录频</a-button>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="showRecord">查看录频记录</a-button>
-    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="mergeRecord">合并视频</a-button>
   </div>
 </div>
 
@@ -224,6 +307,7 @@ const recordUpload = async (r) => {
       <figure>
         <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
         <figcaption>{{file.time}}</figcaption>
+        <video v-if="file.url.endsWith('.webm')" style="width: 90%" controls :src="apiPref + file.url"></video>
         <video v-if="file.url.endsWith('.mp4')" style="width: 90%" controls :src="apiPref + file.url"></video>
         <audio v-if="file.url.endsWith('.mp3')" style="width: 90%" controls :src="apiPref + file.url"></audio>
         <audio v-if="file.url.endsWith('.m4a')" style="width: 90%" controls :src="apiPref + file.url"></audio>
@@ -243,6 +327,7 @@ const recordUpload = async (r) => {
       <figure>
         <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
         <figcaption>{{file.time}}</figcaption>
+        <video v-if="file.url.endsWith('.webm')" style="width: 90%" controls :src="apiPref + file.url"></video>
         <video v-if="file.url.endsWith('.mp4')" style="width: 90%" controls :src="apiPref + file.url"></video>
         <audio v-if="file.url.endsWith('.mp3')" style="width: 90%" controls :src="apiPref + file.url"></audio>
         <audio v-if="file.url.endsWith('.m4a')" style="width: 90%" controls :src="apiPref + file.url"></audio>

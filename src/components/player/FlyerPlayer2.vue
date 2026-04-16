@@ -97,6 +97,10 @@ const selectToPlay = (value) => {
 }
 const url = ref('/video/Charlie1002/20260406A0002.mp4')
 const playNow = () => {
+  if (url.value.startsWith('http')) {
+    selectToPlay(url.value)
+    return
+  }
   selectToPlay(apiPref + url.value)
 }
 </script>
