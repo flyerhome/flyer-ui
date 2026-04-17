@@ -135,9 +135,9 @@ const selectToPlay = (vid) => {
   if (!!!data) {
     return
   }
-  const url = apiPref + data.url
-  flyerPlayerRef.value.play(vid,url)
-  loadSubtitle(url)
+  url.value = data.url
+  flyerPlayerRef.value.play(vid,apiPref + url.value)
+  loadSubtitle(apiPref + url.value)
 }
 const recordMeta = reactive({
   url:'',
@@ -153,12 +153,12 @@ const uploadRecord = () => {
 
 }
 const stopRecord = () => {
-
   flyerMakeRecordRef.value.setRecordMeta(recordMeta)
   recordMeta.end = formatTime(flyerPlayerRef.value.currentTime())
   flyerMakeRecordRef.value.stopRecording(true)
   flyerPlayerRef.value.stop();
   startRecordFlag.value = false;
+  formData = new FormData()
 }
 const showRecord = () => {
   recordVisible.value = true
@@ -167,14 +167,11 @@ const showRecord = () => {
 const mergeRecord = () => {
 
 }
-const recordUpload = async (r) => {
-  const data = dataList.value.find(item => item.vid === movieItem.value)
-  const formData = new FormData();
-  formData.append('record', r.blob, r.name); // 第三个参数是文件名
-  formData.append('video_path', data.url)
-  formData.append('video_start', recordStartValue.value)
-  formData.append('video_end', recordEndValue.value)
-  formData.append('video_speed', flyerPlayerRef.value.currentSpeed())
+let formData =  new FormData();
+const modalHandleOk = async () => {
+  modalVisible.value = false
+  formData.append('video_voice', videoVoiceValue.value)
+  formData.append('record_voice', recordVoiceValue.value)
   try {
     const response = await fetch( apiPref + '/player/record/merge', {
       method: 'POST',
@@ -182,12 +179,20 @@ const recordUpload = async (r) => {
     });
 
     const result = await response.json();
-    flyerPlayerRef.value.stop()
     showRecord()
     console.log('上传成功', result);
   } catch (error) {
     console.error('上传失败', error);
   }
+}
+const recordUpload = async (r) => {
+  modalVisible.value = true;
+
+  formData.append('record', r.blob, r.name); // 第三个参数是文件名
+  formData.append('video_path', url.value)
+  formData.append('video_start', recordStartValue.value)
+  formData.append('video_end', recordEndValue.value)
+  formData.append('video_speed', flyerPlayerRef.value.currentSpeed())
 }
 
 const recordStartValue = ref(0.0)
@@ -201,11 +206,17 @@ const markRecordEnd = () => {
 
 const recordLoaded = () => {
 }
+let timer = null
 const resetVideo = () => {
   flyerPlayerRef.value.restart(recordStartValue.value)
-  setTimeout(()=> {
-    stopRecord()
-  }, (parseInt(recordEndValue.value - recordStartValue.value) + 1) * 1000)
+  if (timer == null)
+    timer = setInterval(()=> {
+      if (flyerPlayerRef.value.currentTime() > recordEndValue.value) {
+        stopRecord()
+        clearInterval(timer)
+        timer = null;
+      }
+    }, 500)
 }
 const subtitle = []
 const loadSubtitle = async (url) => {
@@ -244,39 +255,71 @@ const loadSubtitle = async (url) => {
 const showSubtitle = ref([])
 const timeUpdate = (currentTime) => {
   const f = formatTime(currentTime)
-  console.log("timeUpdate", currentTime, f)
   for (let i = 0, len = subtitle.length; i < len; i++) {
     if (f >= subtitle[i].start && f < subtitle[i].end) {
       showSubtitle.value = subtitle[i].content
-      console.log("匹配上了吗", showSubtitle.value)
     }
   }
 }
+const url = ref('')
+const playNow = () => {
+  let tmpUrl = url.value
+  if (!url.value.startsWith('http')) {
+    tmpUrl = apiPref + tmpUrl
+  }
+  const vid = btoa(tmpUrl)
+  flyerPlayerRef.value.play(vid,tmpUrl)
+}
+const videoVoiceValue = ref('-12dB')
+const recordVoiceValue = ref('+6dB')
+
+const modalVisible = ref(false)
+const confirmLoading = ref(false)
+
 </script>
 
 <template>
 <div style="position: relative;padding: 5px;z-index: 999;width:100%;height: 100%;background: #bdedf6;display: flex;justify-content: start;align-items: center;flex-direction: column">
 
-  <a-select v-model:value="movieItem" @change="(vid) => {selectToPlay(vid);}" :style="{width: widthRate + '%',marginBottom: '10px'}" placeholder="选择聚集">
-    <a-select-option v-for="item in dataList" :value="item.vid">{{ item.name }}</a-select-option>
-  </a-select>
-  <div style="display: flex; flex-direction: column;flex-wrap: wrap;align-items: center;">
-    <div style="background: black;width:400px;height:300px;" >
-      <FlyerPlayer ref="flyerPlayerRef" @timeUpdate="timeUpdate"></FlyerPlayer>
+
+  <div style="position:relative;display: flex; flex-direction: row;flex-wrap: wrap;align-items: center;align-content: center; justify-content: center; width: 100%;height: 100%;">
+    <div style="width: auto;height: 65%;">
+      <FlyerPlayer ref="flyerPlayerRef" @timeUpdate="timeUpdate" :width="'auto'"  :height="'100%'"></FlyerPlayer>
+      <div style="position: relative;z-index: 99999999;color: #0cdf57;pointer-events: none;left:0;right:0;font-size:26px;bottom:60px;" >
+        <div v-for="st in showSubtitle">
+          {{st}}
+        </div>
+      </div>
+    </div>
+    <div style="width: auto;height: 65%;">
+      <FlyerMakeRecord :show="startRecordFlag" ref="flyerMakeRecordRef" :width="'auto'"  :height="'100%'" @upload="recordUpload" @loaded="recordLoaded" @resetVideo="resetVideo"></FlyerMakeRecord>
+    </div>
+
+<!--    <div style="position: relative;width: 40%;height: auto;">
       <div style="position: relative;z-index: 99999999;color: #0cdf57;pointer-events: none;left:0;right:0;font-size:18px;" :style="{bottom:30 * showSubtitle.length + 'px'}">
         <div v-for="st in showSubtitle">
           {{st}}
         </div>
       </div>
     </div>
-    <div v-show="startRecordFlag" style="background: black;width:400px;height:300px;" >
-      <FlyerMakeRecord ref="flyerMakeRecordRef" @upload="recordUpload" @loaded="recordLoaded" @resetVideo="resetVideo"></FlyerMakeRecord>
-    </div>
+    <div v-show="startRecordFlag" style="position: relative; width: 40%;height:  auto;display: block;">
+    </div>-->
+
+<!--    <div style="position: relative;background: red;width:700px;height:700px;" >-->
+<!--    </div>-->
+<!--    <div v-show="startRecordFlag" style="position: relative;background: blueviolet;width:700px;height:700px;" >-->
+<!--    </div>-->
   </div>
 
-<!--  <video ref="videoRef" @loadedmetadata="resumePlayTime" :controls="controls" style="background: black;height:calc(69% - 60px);" :style="{width: widthRate + '%'}"  @mouseover="()=> controls = true" @mouseleave="()=> controls = false">-->
-<!--  </video>-->
-  <div :style="{width: widthRate + '%',marginTop: '10px'}">
+  <div style="position: absolute;bottom: 90px;" :style="{width: widthRate + '%'}">
+    <a-select v-model:value="movieItem" @change="(vid) => {selectToPlay(vid);}" :style="{width:'calc(25% - 10px)',marginRight: '10px'}" placeholder="选择聚集">
+      <a-select-option v-for="item in dataList" :value="item.vid">{{ item.name }}</a-select-option>
+    </a-select>
+    <a-input placeholder="输入远程视频地址" v-model:value="url" style="width: calc(25% - 10px); margin-right: 10px;"></a-input>
+    <a-button style="width: 20%" type="primary" @click="playNow()">播放</a-button>
+  </div>
+  <div style="position: absolute;bottom: 50px;" :style="{width: widthRate + '%'}">
+
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markStart">标记起点</a-button>
     <a-input v-model:value="startValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markEnd">标记终点</a-button>
@@ -285,57 +328,75 @@ const timeUpdate = (currentTime) => {
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="cutAudio">开始截取音频</a-button>
     <a-button type="primary" :style="{width: '10%'}" @click="viewNote">查看记录</a-button>
   </div>
-  <div :style="{width: widthRate + '%',marginTop: '10px'}">
+  <div style="position: absolute;bottom: 10px;" :style="{width: widthRate + '%'}">
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markRecordStart">录制起点</a-button>
     <a-input v-model:value="recordStartValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="markRecordEnd">录制终点</a-button>
     <a-input v-model:value="recordEndValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>
+<!--    <span>视频音量：</span><a-input v-model:value="videoVoiceValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>-->
+<!--    <span>录制音量：</span><a-input v-model:value="recordVoiceValue" style="width: calc(10% - 10px);margin-right:10px;"></a-input>-->
     <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="startRecord">开启录频</a-button>
-    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="stopRecord">关闭录频</a-button>
-    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="showRecord">查看录频记录</a-button>
+    <a-button type="primary" :style="{width: 'calc(10% - 10px)',marginRight: '10px'}" @click="stopRecord">完成录频</a-button>
+    <a-button type="primary" :style="{width: 'calc(10%)'}" @click="showRecord">查看录频记录</a-button>
   </div>
 </div>
 
   <a-drawer
-      :width="520"
+      :width="50 + '%'"
       v-model:open="visible"
       class="custom-class"
       title="历史剪辑"
       placement="right"
   >
-    <div v-for="file in editVideoList">
-      <figure>
+    <div style="display: flex; width: 100%; height: auto;flex-wrap: wrap;flex-direction: column;align-content: center;align-items: center;">
+
+      <figure style="width: 80%;" v-for="file in editVideoList">
         <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
         <figcaption>{{file.time}}</figcaption>
-        <video v-if="file.url.endsWith('.webm')" style="width: 90%" controls :src="apiPref + file.url"></video>
-        <video v-if="file.url.endsWith('.mp4')" style="width: 90%" controls :src="apiPref + file.url"></video>
-        <audio v-if="file.url.endsWith('.mp3')" style="width: 90%" controls :src="apiPref + file.url"></audio>
-        <audio v-if="file.url.endsWith('.m4a')" style="width: 90%" controls :src="apiPref + file.url"></audio>
-        <audio v-if="file.url.endsWith('.wav')" style="width: 90%" controls :src="apiPref + file.url"></audio>
+        <video v-if="file.url.endsWith('.webm')" style="width: 100%" controls :src="apiPref + file.url"></video>
+        <video v-if="file.url.endsWith('.mp4')" style="width: 100%" controls :src="apiPref + file.url"></video>
+        <audio v-if="file.url.endsWith('.mp3')" style="width: 100%" controls :src="apiPref + file.url"></audio>
+        <audio v-if="file.url.endsWith('.m4a')" style="width: 100%" controls :src="apiPref + file.url"></audio>
+        <audio v-if="file.url.endsWith('.wav')" style="width: 100%" controls :src="apiPref + file.url"></audio>
       </figure>
     </div>
   </a-drawer>
 
   <a-drawer
-      :width="520"
+      :width="50 + '%'"
       v-model:open="recordVisible"
       class="custom-class"
-      title="历史剪辑"
+      title="历史录制"
       placement="right"
   >
-    <div v-for="file in recordVideoList">
-      <figure>
-        <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
-        <figcaption>{{file.time}}</figcaption>
-        <video v-if="file.url.endsWith('.webm')" style="width: 90%" controls :src="apiPref + file.url"></video>
-        <video v-if="file.url.endsWith('.mp4')" style="width: 90%" controls :src="apiPref + file.url"></video>
-        <audio v-if="file.url.endsWith('.mp3')" style="width: 90%" controls :src="apiPref + file.url"></audio>
-        <audio v-if="file.url.endsWith('.m4a')" style="width: 90%" controls :src="apiPref + file.url"></audio>
-        <audio v-if="file.url.endsWith('.wav')" style="width: 90%" controls :src="apiPref + file.url"></audio>
-      </figure>
+    <div style="display: flex; width: 100%; height: auto;flex-wrap: wrap;flex-direction: column;align-content: center;align-items: center;">
+
+        <figure style="width: 80%;" v-for="file in recordVideoList">
+          <figcaption><a :href="apiPref + file.url" :download="file.name">{{file.name}}</a></figcaption>
+          <figcaption>{{file.time}}</figcaption>
+          <video v-if="file.url.endsWith('.webm')" style="width: 100%" controls :src="apiPref + file.url"></video>
+          <video v-if="file.url.endsWith('.mp4')" style="width: 100%" controls :src="apiPref + file.url"></video>
+          <audio v-if="file.url.endsWith('.mp3')" style="width: 100%" controls :src="apiPref + file.url"></audio>
+          <audio v-if="file.url.endsWith('.m4a')" style="width: 100%" controls :src="apiPref + file.url"></audio>
+          <audio v-if="file.url.endsWith('.wav')" style="width: 100%" controls :src="apiPref + file.url"></audio>
+        </figure>
     </div>
   </a-drawer>
 
+  <a-modal
+      v-model:visible="modalVisible"
+      title="视频合成前请确认"
+      :confirm-loading="confirmLoading"
+      @ok="modalHandleOk"
+      @cancel="modalHandleOk"
+  >
+    <a-form-item label="素材视频音量">
+      <a-input v-model:value="videoVoiceValue"></a-input>
+    </a-form-item>
+    <a-form-item label="录制音量">
+      <a-input v-model:value="recordVoiceValue"></a-input>
+    </a-form-item>
+  </a-modal>
 
 </template>
 

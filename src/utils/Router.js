@@ -13,7 +13,7 @@ import FlyerMakeRecord from "../components/common/FlyerMakeRecord.vue";
 
 const routes = [
     { path: '/hello-world', component:  HelloWorld},
-    { path: '/player', component:  FlyerPlayer},
+    { path: '/player', component:  ()=>import('../components/player/FlyerBestPlayer.vue')},
     { path: '/best-player', component:  ()=>import('../components/player/FlyerBestPlayer.vue')},
     { path: '/player2', component:  FlyerPlayer2},
     { path: '/player-tmp', component:  FlyerPlayerTmp},

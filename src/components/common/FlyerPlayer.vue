@@ -5,6 +5,16 @@ const videoRef = ref()
 const videoId = ref()
 const controls = ref(true)
 const emits = defineEmits(["timeUpdate"])
+defineProps({
+  width:{
+    type: String,
+    default:'100%'
+  },
+  height:{
+    type: String,
+    default:'100%'
+  }
+})
 const play = (vid, videoPath) => {
   videoId.value = vid
   videoRef.value.src = videoPath
@@ -86,10 +96,8 @@ const timeupdate = (event) => {
 </script>
 
 <template>
-  <div style="position: relative;z-index: 999;width:100%;height: 100%;">
-    <video ref="videoRef" @loadedmetadata="resumePlayTime" @timeupdate="timeupdate" :controls="controls" style="background: black;width:100%;height:100%;" @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
+    <video ref="videoRef" @loadedmetadata="resumePlayTime" @timeupdate="timeupdate" :controls="controls" style="display: block;background: lightblue;" :style="{width:width, height:height}" @mouseover="()=> controls = true" @mouseleave="()=> controls = false">
     </video>
-  </div>
 </template>
 
 <style scoped>
